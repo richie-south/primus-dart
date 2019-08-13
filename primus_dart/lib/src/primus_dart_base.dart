@@ -99,9 +99,7 @@ class Primus {
         _sendToListeners('close', message);
       } else {
         try {
-          var jsonObject = json.decode(message);
-
-          _sendToListeners('data', jsonObject);
+          _sendToListeners('data', message);
         } catch (error) {
           _sendToListeners('error', error);
         }
