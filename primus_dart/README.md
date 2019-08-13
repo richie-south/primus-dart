@@ -1,3 +1,5 @@
+Primus client for dart
+
 Still in early development, missing some features and might not work for your needs right now.
 
 ## Usage
