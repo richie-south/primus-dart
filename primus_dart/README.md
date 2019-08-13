@@ -15,7 +15,7 @@ main() {
 
   /*
    * available listeners
-   * 'open', 'close', 'data'
+   * 'open', 'close', 'data', 'error'
    */
   socket.addListener('open', (data) {
 
