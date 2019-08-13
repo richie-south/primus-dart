@@ -14,7 +14,7 @@ class Primus {
 
   Primus(this.url) {
     _server_address = generatePrimusUrl(this.url);
-    open();
+    _open();
   }
 
   void sendRawToWebSocket(String data) {
@@ -30,7 +30,11 @@ class Primus {
     }
   }
 
-  void reset() {
+  void addListener(String channel, Function(dynamic data) callback) {
+    _listeners.add({channel: callback});
+  }
+
+  void _reset() {
     if (_channel != null) {
       if (_channel.sink != null) {
         _channel.sink.close();
@@ -47,8 +51,8 @@ class Primus {
     });
   }
 
-  void open() {
-    reset();
+  void _open() {
+    _reset();
 
     try {
       _channel =
@@ -65,11 +69,7 @@ class Primus {
     }
   }
 
-  void addListener(String channel, Function(dynamic data) callback) {
-    _listeners.add({channel: callback});
-  }
-
-  void pong() {
+  void _pong() {
     String data =
         'primus::pong::' + DateTime.now().millisecondsSinceEpoch.toString();
     sendRawToWebSocket(data);
@@ -78,7 +78,7 @@ class Primus {
   void _onReceptionOfMessageFromServer(dynamic message) {
     status = 'open';
     if (message.toString().contains('primus::ping')) {
-      return pong();
+      return _pong();
     }
 
     if (message is String) {
