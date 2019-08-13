@@ -6,10 +6,6 @@ import './utils.dart';
 class Primus {
 
   final String url;
-  final List<String> strategy;
-
-  static const String OPEN = '';
-  static const String OPENING = '';
 
   String status = '';
   String _server_address;
@@ -17,7 +13,7 @@ class Primus {
 
   List<Map<String, Function>> _listeners = List<Map<String, Function>>();
 
-  Primus(this.url, { this.strategy }) {
+  Primus(this.url) {
     _server_address = generatePrimusUrl(this.url);
     open();
   }
@@ -44,6 +40,14 @@ class Primus {
     }
   }
 
+  void _sendToListeners(String key, dynamic data) {
+    _listeners.forEach((Map<String, Function> keyFn) {
+      if (keyFn.containsKey(key)) {
+        keyFn[key](data);
+      }
+    });
+  }
+
   void open() {
     reset();
 
@@ -52,14 +56,11 @@ class Primus {
       _channel = IOWebSocketChannel.connect(_server_address, protocols: ['https']);
 
       _channel.stream.handleError((error) {
-        print(error);
+        _sendToListeners('error', error);
       });
       _channel.stream.listen(_onReceptionOfMessageFromServer,
-        onDone: () {
-          print('on done');
-        },
         onError: (error) {
-          print(error);
+          _sendToListeners('error', error);
         });
 
     } catch(e){
@@ -87,11 +88,7 @@ class Primus {
 
       if (message.startsWith('o')) {
 
-        _listeners.forEach((Map<String, Function> keyFn) {
-          if (keyFn.containsKey('open')) {
-            keyFn['open'](message);
-          }
-        });
+        _sendToListeners('open', message);
       } else if (message.startsWith('a')) {
 
         if (!message.contains('primus::')) {
@@ -99,35 +96,22 @@ class Primus {
             var arrayWithString = json.decode(message.substring(1));
             var jsonObject = json.decode(arrayWithString[0]);
 
-            _listeners.forEach((Map<String, Function> keyFn) {
-              if (keyFn.containsKey('data')) {
-                keyFn['data'](jsonObject);
-              }
-            });
+            _sendToListeners('data', jsonObject);
 
-          } catch (e) {
-            print(e);
+          } catch (error) {
+            _sendToListeners('error', error);
           }
         }
       } else if (message.startsWith("c")) {
 
-        _listeners.forEach((Map<String, Function> keyFn) {
-          if (keyFn.containsKey('close')) {
-            keyFn['close'](message);
-          }
-        });
+        _sendToListeners('close', message);
       } else {
-        // json string
         try {
           var jsonObject = json.decode(message);
 
-          _listeners.forEach((Map<String, Function> keyFn) {
-            if (keyFn.containsKey('data')) {
-              keyFn['data'](jsonObject);
-            }
-          });
-        } catch (e) {
-          print(e);
+          _sendToListeners('data', jsonObject);
+        } catch (error) {
+          _sendToListeners('error', error);
         }
       }
     }
