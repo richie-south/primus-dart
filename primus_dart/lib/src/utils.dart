@@ -19,5 +19,5 @@ String generatePrimusUrl(String base) {
   Random r = Random();
   int server = r.nextInt(1000);
   String connId = _randomStringOfLength(8);
-  return base + "/primus/" + server.toString() + "/" + connId + "/websocket";
+  return base + "/" + server.toString() + "/" + connId + "/websocket";
 }
