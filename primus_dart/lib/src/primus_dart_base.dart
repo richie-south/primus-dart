@@ -46,7 +46,12 @@ class Primus {
   void _sendToListeners(String key, dynamic data) {
     _listeners.forEach((Map<String, Function> keyFn) {
       if (keyFn.containsKey(key)) {
-        keyFn[key](data);
+        try {
+          keyFn[key](data);
+        } catch (e) {
+          // swallow listeners errors
+          print(e);
+        }
       }
     });
   }
