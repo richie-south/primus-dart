@@ -14,7 +14,7 @@ class Primus {
 
   Primus(this.url) {
     _server_address = generatePrimusUrl(this.url);
-    _open();
+    _open(_server_address);
   }
 
   void sendRawToWebSocket(String data) {
@@ -56,17 +56,17 @@ class Primus {
     });
   }
 
-  void _open() {
+  void _open(String serverAddress) {
     _reset();
 
     try {
       _channel =
-          IOWebSocketChannel.connect(_server_address, protocols: ['https']);
+          IOWebSocketChannel.connect(serverAddress, protocols: ['https']);
 
       _channel.stream.handleError((error) {
         _sendToListeners('error', error);
       });
-      _channel.stream.listen(_onReceptionOfMessageFromServer, onError: (error) {
+      _channel.stream.listen(_onServerMessage, onError: (error) {
         _sendToListeners('error', error);
       });
     } catch (e) {
@@ -80,7 +80,7 @@ class Primus {
     sendRawToWebSocket(data);
   }
 
-  void _onReceptionOfMessageFromServer(dynamic message) {
+  void _onServerMessage(dynamic message) {
     status = 'open';
     if (message.toString().contains('primus::ping')) {
       return _pong();
