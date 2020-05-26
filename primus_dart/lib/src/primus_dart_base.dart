@@ -3,6 +3,13 @@ import 'package:json_isolate/json_isolate.dart';
 import 'package:web_socket_channel/io.dart';
 import './utils.dart';
 
+enum PrimusListenerOn {
+  Open,
+  Close,
+  Data,
+  Error,
+}
+
 class Primus {
   final String url;
   final bool parseInThread;
@@ -11,7 +18,8 @@ class Primus {
   IOWebSocketChannel _channel;
   JsonIsolate jsonIsolate;
 
-  final List<Map<String, Function>> _listeners = <Map<String, Function>>[];
+  final List<Map<PrimusListenerOn, Function>> _listeners =
+      <Map<PrimusListenerOn, Function>>[];
 
   Primus(this.url, {this.parseInThread = false}) {
     jsonIsolate = JsonIsolate();
@@ -33,7 +41,7 @@ class Primus {
     }
   }
 
-  void addListener(String channel, Function(dynamic data) callback) {
+  void addListener(PrimusListenerOn channel, Function(dynamic data) callback) {
     _listeners.add({channel: callback});
   }
 
@@ -46,11 +54,11 @@ class Primus {
     }
   }
 
-  void _sendToListeners(String key, dynamic data) {
-    _listeners.forEach((Map<String, Function> keyFn) {
-      if (keyFn.containsKey(key)) {
+  void _sendToListeners(PrimusListenerOn code, dynamic data) {
+    _listeners.forEach((Map<PrimusListenerOn, Function> keyFn) {
+      if (keyFn.containsKey(code)) {
         try {
-          keyFn[key](data);
+          keyFn[code](data);
         } catch (e) {
           // swallow listeners errors
           print(e);
@@ -67,10 +75,10 @@ class Primus {
           IOWebSocketChannel.connect(serverAddress, protocols: ['https']);
 
       _channel.stream.handleError((error) {
-        _sendToListeners('error', error);
+        _sendToListeners(PrimusListenerOn.Error, error);
       });
       _channel.stream.listen(_onServerMessage, onError: (error) {
-        _sendToListeners('error', error);
+        _sendToListeners(PrimusListenerOn.Error, error);
       });
     } catch (e) {
       print(e);
@@ -91,7 +99,7 @@ class Primus {
 
     if (message is String) {
       if (message.startsWith('o')) {
-        _sendToListeners('open', message);
+        _sendToListeners(PrimusListenerOn.Open, message);
       } else if (message.startsWith('a')) {
         if (!message.contains('primus::')) {
           try {
@@ -99,23 +107,24 @@ class Primus {
               var arrayWithString =
                   await jsonIsolate.convert(message.substring(1));
               var jsonObject = await jsonIsolate.convert(arrayWithString[0]);
-              _sendToListeners('data', jsonObject);
+              _sendToListeners(PrimusListenerOn.Data, jsonObject);
             } else {
               var arrayWithString = json.decode(message.substring(1));
               var jsonObject = json.decode(arrayWithString[0]);
-              _sendToListeners('data', jsonObject);
+              _sendToListeners(PrimusListenerOn.Data, jsonObject);
             }
           } catch (error) {
-            _sendToListeners('error', error);
+            _sendToListeners(PrimusListenerOn.Error, error);
           }
         }
       } else if (message.startsWith('c')) {
-        _sendToListeners('close', message);
+        // send close command?
+        _sendToListeners(PrimusListenerOn.Close, message);
       } else {
         try {
-          _sendToListeners('data', message);
+          _sendToListeners(PrimusListenerOn.Data, message);
         } catch (error) {
-          _sendToListeners('error', error);
+          _sendToListeners(PrimusListenerOn.Error, error);
         }
       }
     }
