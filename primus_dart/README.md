@@ -26,6 +26,16 @@ main() {
 }
 ```
 
+## options
+
+```dart
+main() {
+  Primus socket = Primus(socketUrl, {
+    parseInThread: false // default false - parses json in seperate thread
+  });
+}
+```
+
 ## Features and bugs
 
 Please file feature requests and bugs at the [issue tracker][tracker].
