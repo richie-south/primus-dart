@@ -14,9 +14,12 @@ main() {
 
   /*
    * available listeners
-   * 'open', 'close', 'data', 'error'
+   * PrimusListenerOn.Open
+   * PrimusListenerOn.Close
+   * PrimusListenerOn.Data
+   * PrimusListenerOn.Error
    */
-  socket.addListener('open', (data) {
+  socket.addListener(PrimusListenerOn.Open, (data) {
 
   });
 
@@ -41,3 +44,13 @@ main() {
 Please file feature requests and bugs at the [issue tracker][tracker].
 
 [tracker]: https://github.com/richie-south/primus-dart/issues
+
+## TODO
+
+- [ ] reconnect
+- [ ] disconnect
+- [ ] error message for first connection
+  - we register listeners after connection so error on first connect will never be sent to user.
+- [ ] testing
+  - mock IOWebSocketChannel
+- [ ] thread testing
