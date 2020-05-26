@@ -1,24 +1,27 @@
 import 'dart:convert';
-
+import 'package:json_isolate/json_isolate.dart';
 import 'package:web_socket_channel/io.dart';
 import './utils.dart';
 
 class Primus {
   final String url;
-
+  final bool parseInThread;
   String status = '';
   String _server_address;
   IOWebSocketChannel _channel;
+  JsonIsolate jsonIsolate;
 
-  List<Map<String, Function>> _listeners = List<Map<String, Function>>();
+  final List<Map<String, Function>> _listeners = <Map<String, Function>>[];
 
-  Primus(this.url) {
-    _server_address = generatePrimusUrl(this.url);
+  Primus(this.url, {this.parseInThread = false}) {
+    jsonIsolate = JsonIsolate();
+    _server_address = generatePrimusUrl(url);
+
     _open(_server_address);
   }
 
   void sendRawToWebSocket(String data) {
-    String message = '[\"\\"' + data + '\\\""]';
+    var message = '[\"\\"' + data + '\\\""]';
     send(message);
   }
 
@@ -75,12 +78,12 @@ class Primus {
   }
 
   void _pong() {
-    String data =
+    var data =
         'primus::pong::' + DateTime.now().millisecondsSinceEpoch.toString();
     sendRawToWebSocket(data);
   }
 
-  void _onServerMessage(dynamic message) {
+  void _onServerMessage(dynamic message) async {
     status = 'open';
     if (message.toString().contains('primus::ping')) {
       return _pong();
@@ -92,15 +95,21 @@ class Primus {
       } else if (message.startsWith('a')) {
         if (!message.contains('primus::')) {
           try {
-            var arrayWithString = json.decode(message.substring(1));
-            var jsonObject = json.decode(arrayWithString[0]);
-
-            _sendToListeners('data', jsonObject);
+            if (parseInThread) {
+              var arrayWithString =
+                  await jsonIsolate.convert(message.substring(1));
+              var jsonObject = await jsonIsolate.convert(arrayWithString[0]);
+              _sendToListeners('data', jsonObject);
+            } else {
+              var arrayWithString = json.decode(message.substring(1));
+              var jsonObject = json.decode(arrayWithString[0]);
+              _sendToListeners('data', jsonObject);
+            }
           } catch (error) {
             _sendToListeners('error', error);
           }
         }
-      } else if (message.startsWith("c")) {
+      } else if (message.startsWith('c')) {
         _sendToListeners('close', message);
       } else {
         try {
