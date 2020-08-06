@@ -13,19 +13,25 @@ enum PrimusListenerOn {
 class Primus {
   final String url;
   final bool parseInThread;
+  final bool autoReconnect;
   String status = '';
-  String _server_address;
   IOWebSocketChannel _channel;
   JsonIsolate jsonIsolate;
 
   final List<Map<PrimusListenerOn, Function>> _listeners =
       <Map<PrimusListenerOn, Function>>[];
 
-  Primus(this.url, {this.parseInThread = false}) {
+  Primus(this.url, {this.parseInThread = false, this.autoReconnect = true}) {
     jsonIsolate = JsonIsolate();
-    _server_address = generatePrimusUrl(url);
 
-    _open(_server_address);
+    var serverAddress = generatePrimusUrl(url);
+    _open(serverAddress);
+
+    if (autoReconnect) {
+      addListener(PrimusListenerOn.Close, (data) {
+        _open(serverAddress);
+      });
+    }
   }
 
   void sendRawToWebSocket(String data) {
