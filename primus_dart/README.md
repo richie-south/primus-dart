@@ -35,6 +35,7 @@ main() {
 main() {
   Primus socket = Primus(socketUrl, {
     parseInThread: false // default false - parses json in seperate thread
+    autoReconnect: true // default true - tries to reconnect to stream on primus close commands
   });
 }
 ```
@@ -48,6 +49,7 @@ Please file feature requests and bugs at the [issue tracker][tracker].
 ## TODO
 
 - [ ] reconnect
+- [x] only basic implementation works
 - [ ] disconnect
 - [ ] error message for first connection
   - we register listeners after connection so error on first connect will never be sent to user.
